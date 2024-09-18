@@ -8,7 +8,7 @@ services:
     volumes:
       - ./:/ds6600
     networks:
-      - dbnetwork
+      - containernetwork
   postgres:
     image: postgres:latest   
     env_file:
@@ -18,8 +18,19 @@ services:
     volumes:
       - postgresdata:/var/lib/postgresql/data
     networks:
-      - dbnetwork
+      - containernetwork
+  mongodb:
+    image: mongo:6.0
+    env_file:
+      - .env
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodata:/data/db
+    networks:
+      - containernetwork
 volumes:
   postgresdata:
+  mongodata:
 networks:
-  dbnetwork:
+  containernetwork:
