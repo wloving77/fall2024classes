@@ -4,11 +4,10 @@ from dotenv import load_dotenv
 import pandas as pd
 import os
 
-class APIHelper:
+class contrans:
 
     def __init__(self):
         load_dotenv("../.env")
-        self.api_key_steam = os.getenv("STEAM_API_KEY")
         self.congress_key = os.getenv("CONGRESS_API_KEY")
 
     def get_votes(self):
