@@ -10,7 +10,7 @@ services:
     networks:
       - containernetwork
   postgres:
-    image: postgres:latest   
+    image: postgres:latest
     env_file:
       - .env
     ports:

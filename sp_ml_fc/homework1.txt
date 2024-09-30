@@ -1,0 +1,103 @@
+CS 6762
+Fall 2023
+SP, ML and FC
+Homework 1
+Topics covered: CPS hw/sw basics, sensors, basic sensing & sampling principles
+Answer all questions. Work alone. Total 100 points. Type or write neatly.
+
+1. What are some of the enabling HW/SW technologies that support the creation of
+the CPS/IOT revolution? (10 points)
+
+Hardware: 
+
+    Sensors, 
+    Actuators, 
+    Microcontrollers, 
+    Platforms (Devices/Smart Devices), 
+    Energy Harvesting Hardware
+
+Software:
+
+    Machine Learning, 
+    Middleware and Protocol Stacks,
+    Real-Time Operating Systems (RTOS)
+
+2. What are the hardware components of a typical smart device? (be complete) (10
+points)
+
+    Microcontroller (MPU or MCU),
+    Memory (RAM and ROM),
+    Storage,
+    Power Supply/Source,
+    Sensor of Some Kind (Radio/Tranceiver),
+    Actuator of Some Kind (Motors, Speakers),
+
+3. What is energy scavenging? (5 points)
+
+    When a CPS system has some mechanism for self-charging or powering itself naturally. An example is a solar panel which powers an MCU or CPS device. Other examples include thermal energy, vibrational/mechanical energy and wind/airflow energy.
+
+4. What are the main (14) properties of sensors that must be considered when
+choosing a sensor? (10 points)
+
+    Range
+    Accuracy
+    Repeatability
+    Linearity
+    Sensitivity
+    Efficiency
+    Resolution
+    Response Time
+    Overshoot
+    Drift and Stability
+    Offset
+    Packaging
+    Property of the Circuit
+    Initialization Time
+
+
+5. What is the Nyquist sampling theorem? (5 points)
+
+    The Nyquist sampling theorem is the theorem that defines the minimum sampling rate required to accurately reconstruct a continuous analog signal and states that the sampling rate must be at least twice the highest frequency component of the original continuous signal.    
+
+6. Describe aliasing and how you avoid it. (5 points)
+
+    Aliasing is when high frequency components of a signal are mistakenly detected as lower frequencies because the signal is sampled too slowly. This is also where the above Nyquist sampling theorem comes in, provided the sampling rate is at least twice the highest frequency component aliasing should not occur.
+
+7. Explain the concept of a virtual sensor? (5 points)
+
+    A virtual sensor is a piece of software often running on a CPS system that leverages data gathered by other sensors to then model or represent a physical phenomenon. An example might be predicting the quality of the air in a smart building leveraging data from C02 and humidity sensors. 
+
+8. What are the typical parameters for an ADC? (5 points)
+
+    Resolution,
+    Sampling Rate,        
+
+9. How does one connect peripherals/sensors to microcontrollers? (5 points)
+
+    General Purpose Input/Output (GPIO) Pins,
+    Sometimes Direct to ADC for Conversion
+
+10. Choose one of microphone, magnetometer, accelerometer or lidar. Search the web
+for descriptions of that class of sensor and describe the main issues related to that
+sensor type and how to program/use it. (15 points)
+
+    I chose Magnetometer. Calibration is the most pertinent issue when using a Magnetometer, both soft and hard iron distortion require intentional calibration and offset handling to remedy. Calibration also typically requires hands on spinning/movement so as to gather data to find the proper offsets. Data can usually be read directly from the magnetometer in a language like C with an arduino, but there are many layers of filtering and tilt compensation that must then be performed to actually get usable data from the magnetometer. They are typically used in tandem with other sensors for navigational purposes.
+
+11. Assume you are part of a team for installing an IOT infrastructure for a smart city.
+What sensors would you include and why? (15 points)
+
+    Cameras, both visual and thermal,
+    Air quality sensors,
+    Traffic and Traffic light sensors, 
+    Sewage sensors, 
+    Water quality sensors,
+    Parking sensors,
+
+
+12. Describe what sensors are needed and why for typical autonomous vehicles
+(driverless cars). (10 points)
+
+    Light Detection and Ranging (Lidar) for creating a 3D 360 degree view around the vehicle.
+    Cameras (Optical and Infrared) for detecting obstacles around the vehicle, but also for reading street signs and detecting people.
+    Magnetometer for determining the vehicles orientation.
+
