@@ -1,14 +1,17 @@
 import json
 import requests
-from dotenv import load_dotenv
 import pandas as pd
 import os
+from dotenv import load_dotenv
+
 
 class contrans:
 
     def __init__(self):
         load_dotenv("../.env")
         self.congress_key = os.getenv("CONGRESS_API_KEY")
+        self.bungie_key = os.getenv("BUNGIE_API_KEY")
+        self.steam_key = os.getenv("STEAM_API_KEY")
 
     def get_votes(self):
         url = "https://voteview.com/static/data/out/votes/H118_votes.csv"
@@ -57,6 +60,37 @@ class contrans:
             j = j + 250
 
         return bio_df
-            
+
+
+    def get_bioguide(self, first_name, last_name, state=None, district=None):
+        
+        members = self.get_bioguideIDs() # to be stored in PostgreSQL 
+
+        # Create first and last names field
+        members['last_names'] = members['name'].str.replace(",","").str.lower().str.strip().str.split().str[0]
+        members['first_names'] = members['name'].str.replace(",","").str.lower().str.strip().str.split().str[1]
+
+        members = members[(members['first_names'] == first_name) & (members['last_names'] == last_name)].copy()
+        
+        if state is not None:
+            members = members[members['state'] == state].copy()
+
+        if district is not None:
+            members = members[members['district'] == district].copy()
+
+        return members
+    
+    def get_sponsored_legislation(self, bioguideid):
+        root = "https://api.congress.gov/v3/"   
+        endpoint = f'/member/{bioguideid}/sponsored-legislation'
+        headers = self.make_headers()
+        params = {"api_key":self.congress_key, "limit": 250}
+
+        r = requests.get(root + endpoint,
+                         params=params,
+                         headers=headers)
+
+        return r
+        
         
 
