@@ -10,8 +10,6 @@ class contrans:
     def __init__(self):
         load_dotenv("../.env")
         self.congress_key = os.getenv("CONGRESS_API_KEY")
-        self.bungie_key = os.getenv("BUNGIE_API_KEY")
-        self.steam_key = os.getenv("STEAM_API_KEY")
 
     def get_votes(self):
         url = "https://voteview.com/static/data/out/votes/H118_votes.csv"
@@ -84,13 +82,25 @@ class contrans:
         root = "https://api.congress.gov/v3/"   
         endpoint = f'/member/{bioguideid}/sponsored-legislation'
         headers = self.make_headers()
-        params = {"api_key":self.congress_key, "limit": 250}
+        params = {"api_key":self.congress_key, "limit": 1}
 
         r = requests.get(root + endpoint,
                          params=params,
                          headers=headers)
 
-        return r
+        total_records = r.json()['pagination']['count']        
+        
+        j=0
+        sl_df = pd.DataFrame()
+        while j < total_records: 
+            params['limit'] = 250
+            params['offset'] = j
+            r = requests.get(root + endpoint, params=params, headers=headers)
+            records = pd.json_normalize((r.json()['sponsoredLegislation']))
+            sl_df = pd.concat([sl_df, records], ignore_index=True)
+            j = j + 250
+        
+        return sl_df
         
         
 
