@@ -10,6 +10,7 @@ class contrans:
     def __init__(self):
         load_dotenv("../.env")
         self.congress_key = os.getenv("CONGRESS_API_KEY")
+        self.news_key = os.getenv("NEWS_API_KEY")
 
     def get_votes(self):
         url = "https://voteview.com/static/data/out/votes/H118_votes.csv"
@@ -101,6 +102,23 @@ class contrans:
             j = j + 250
         
         return sl_df
+
+
+    # NEWS API:
+
+
+    def search_news(self, query):
+        params = {"apiKey":self.news_key, "q":query}
+        headers = self.make_headers()
+        root_url = "https://newsapi.org/v2/everything"
+
+        r = requests.get(root_url, params=params, headers=headers)
+
+        if(r.status_code==200):
+            return r.json()
+        else:
+            return "Error Processing Request"
         
+
         
 
