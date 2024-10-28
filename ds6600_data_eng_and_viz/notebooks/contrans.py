@@ -158,6 +158,18 @@ class contrans:
 
         return bills_list
 
+    def get_billdata(self, billurl):
+        r = requests.get(billurl, params={"api_key": self.congresskey})
+        bill_json = json.loads(r.text)
+        texturl = bill_json["bill"]["textVersions"]["url"]
+        r = requests.get(texturl, params={"api_key": self.congresskey})
+        toscrape = json.loads(r.text)["textVersions"][0]["formats"][0]["url"]
+        r = requests.get(toscrape)
+        mysoup = BeautifulSoup(r.text, "html.parser")
+        billtext = mysoup.text
+        bill_json["bill_text"] = billtext
+        return bill_json
+
     def make_cand_table(self, members):
         # members is output of get_terms()
         replace_map = {"Republican": "R", "Democratic": "D", "Independent": "I"}
@@ -208,7 +220,7 @@ class contrans:
         )
         return crosswalk
 
-    def get_terms(self, members):
+    def terms_df(self, members):
         termsDF = pd.DataFrame()
         for index, row in members.iterrows():
             bioguide_id = row["bioguideId"]
