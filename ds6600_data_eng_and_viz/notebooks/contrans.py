@@ -139,7 +139,7 @@ class contrans:
 
     def get_sponsoredlegislation(self, bioguideid):
 
-        params = {"api_key": self.congresskey, "limit": 1}
+        params = {"api_key": self.congress_key, "limit": 1}
         headers = self.make_headers()
         root = "https://api.congress.gov/v3"
         endpoint = f"/member/{bioguideid}/sponsored-legislation"
@@ -159,15 +159,15 @@ class contrans:
         return bills_list
 
     def get_billdata(self, billurl):
-        r = requests.get(billurl, params={"api_key": self.congresskey})
+        r = requests.get(billurl, params={"api_key": self.congress_key})
         bill_json = json.loads(r.text)
         texturl = bill_json["bill"]["textVersions"]["url"]
-        r = requests.get(texturl, params={"api_key": self.congresskey})
+        r = requests.get(texturl, params={"api_key": self.congress_key})
         toscrape = json.loads(r.text)["textVersions"][0]["formats"][0]["url"]
         r = requests.get(toscrape)
         mysoup = BeautifulSoup(r.text, "html.parser")
         billtext = mysoup.text
-        bill_json["bill_text"] = billtext
+        bill_json["bill"]["bill_text"] = billtext
         return bill_json
 
     def make_cand_table(self, members):
@@ -248,20 +248,33 @@ class contrans:
 
     ### Methods for building the 3NF relational DB tables
     def make_members_df(self, members, ideology, engine):
+        """
+        members should be the output of get_bioguideIDs(),
+        with terms removed by get_terms(),
+        augmented with contributions by make_cand_table().
+        ideology should be the output of get_ideology().
+        """
         members_df = pd.merge(
             members, ideology, left_on="bioguideId", right_on="bioguide_id", how="left"
         )
+        # dbserver, engine = self.connect_to_postgres(self.POSTGRES_PASSWORD)
+        members_df.columns = members_df.columns.str.lower()
+        members_df.columns = members_df.columns.str.replace(".", "_")
+        members_df.to_sql(
+            "members", con=engine, index=False, chunksize=1000, if_exists="replace"
+        )
 
-        members_df.to_sql("members", index=False, con=engine, if_exists="replace")
-        return members_df
+    def make_terms_df(self, terms, engine):
+        terms.columns = terms.columns.str.lower()
+        terms.to_sql(
+            "terms", con=engine, index=False, chunksize=1000, if_exists="replace"
+        )
 
-    def make_terms_df(self, engine, terms_df):
-        terms_df.to_sql("terms", index=False, con=engine, if_exists="replace")
-        return self
-
-    def make_votes_df(self, engine, votes_df):
-        votes_df.to_sql("votes", index=False, con=engine, if_exists="replace")
-        return self
+    def make_votes_df(self, votes, engine):
+        votes.columns = votes.columns.str.lower()
+        votes.to_sql(
+            "votes", con=engine, index=False, chunksize=1000, if_exists="replace"
+        )
 
     def make_agreement_df(self):
         return self
@@ -279,3 +292,39 @@ class contrans:
             return r.json()
         else:
             return "Error Processing Request"
+
+    def dbml_helper(self, data):
+        dt = data.dtypes.reset_index().rename({0: "dtype"}, axis=1)
+        replace_map = {"object": "varchar", "int64": "int", "float64": "float"}
+        dt["dtype"] = dt["dtype"].replace(replace_map)
+        return dt.to_string(index=False, header=False)
+
+    def make_agreement_df(self, bioguide_id, engine):
+        myquery = f"""
+            SELECT icpsr
+            FROM members m
+            WHERE bioguideid = {bioguide_id}
+            """
+        icpsr = int(pd.read_sql_query(myquery, con=engine)["icpsr"][0])
+        myquery = f"""
+            SELECT m.name, m.partyname, m.state, m.district, v.agree
+            FROM members m
+            INNER JOIN (
+            SELECT
+                    a.icpsr AS icpsr1,
+                    b.icpsr AS icpsr2,
+                    AVG(CAST((a.cast_code = b.cast_code) AS INT)) AS agree
+                    FROM votes a
+            INNER JOIN votes b
+                    ON a.rollnumber = b.rollnumber
+                    AND a.chamber = b.chamber
+            WHERE a.icpsr={icpsr} AND b.icpsr!={icpsr}
+            GROUP BY icpsr1, icpsr2
+            ORDER BY agree DESC
+            ) v
+            ON CAST(m.icpsr AS INT) = v.icpsr2
+            WHERE m.icpsr IS NOT NULL
+            ORDER BY v.agree DESC
+            """
+        df = pd.read_sql_query(myquery, con=engine)
+        return df.head(10), df.tail(10)

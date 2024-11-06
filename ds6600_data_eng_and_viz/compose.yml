@@ -1,14 +1,14 @@
 services:
-  jupyterlab:
-    image: wloving77/ds6600_repo:jupyter_image
-    env_file:
-      - .env
-    ports:
-      - "8888:8888"
-    volumes:
-      - ./:/ds6600
-    networks:
-      - containernetwork
+  # jupyterlab:
+  #   image: wloving77/ds6600_repo:jupyter_image
+  #   env_file:
+  #     - .env
+  #   ports:
+  #     - "8888:8888"
+  #   volumes:
+  #     - ./:/ds6600
+  #   networks:
+  #     - containernetwork
   postgres:
     image: postgres:latest
     env_file:
@@ -20,7 +20,7 @@ services:
     networks:
       - containernetwork
   mongodb:
-    image: mongo:6.0
+    image: mongo:latest
     env_file:
       - .env
     ports:
