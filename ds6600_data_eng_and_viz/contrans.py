@@ -14,7 +14,7 @@ import plotly.express as px
 class contrans_helper:
 
     def __init__(self):
-        load_dotenv("../.env")
+        load_dotenv("./.env")
         self.congress_key = os.getenv("CONGRESS_API_KEY")
         self.news_key = os.getenv("NEWS_API_KEY")
         self.postgres_user = os.getenv("POSTGRES_USER")
