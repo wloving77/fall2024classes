@@ -4,11 +4,14 @@ import pandas as pd
 import os
 from dotenv import load_dotenv
 import psycopg
+import pymongo
+from bson.json_util import dumps, loads
 from sqlalchemy import create_engine
 from bs4 import BeautifulSoup
+import plotly.express as px
 
 
-class contrans:
+class contrans_helper:
 
     def __init__(self):
         load_dotenv("../.env")
@@ -16,6 +19,8 @@ class contrans:
         self.news_key = os.getenv("NEWS_API_KEY")
         self.postgres_user = os.getenv("POSTGRES_USER")
         self.postgres_password = os.getenv("POSTGRES_PASSWORD")
+        self.MONGO_INITDB_ROOT_USERNAME = os.getenv("MONGO_INITDB_ROOT_USERNAME")
+        self.MONGO_INITDB_ROOT_PASSWORD = os.getenv("MONGO_INITDB_ROOT_PASSWORD")
         self.us_state_to_abbrev = {
             "Alabama": "AL",
             "Alaska": "AK",
@@ -246,6 +251,53 @@ class contrans:
         )
         return dbserver, engine
 
+    def connect_to_mongo(self, from_scratch=False):
+        myclient = pymongo.MongoClient(
+            f"mongodb://{self.MONGO_INITDB_ROOT_USERNAME}:{self.MONGO_INITDB_ROOT_PASSWORD}@localhost:27017/"
+        )
+        mongo_contrans = myclient["contrans"]
+        collist = mongo_contrans.list_collection_names()
+        if from_scratch and "bills" in collist:
+            mongo_contrans.bills.drop()
+        return mongo_contrans["bills"]
+
+    def upload_one_member_to_mongo(self, mongo_bills, bioguide):
+        bill_list = self.get_sponsoredlegislation(bioguide)
+        bill_list_with_text = [self.get_billdata(x["url"]) for x in bill_list]
+        mongo_bills.insert_many(bill_list_with_text)
+
+    def upload_many_members_to_mongo(self, mongo_bills, members):
+        i = 1
+        for m in members:
+            status = f"Now uploading bills from {m} to MongoDB: legislator {i} of {len(members)}"
+            print(status)
+            try:
+                self.upload_one_member_to_mongo(mongo_bills, m)
+            except:
+                print(f"Failed to upload {m}")
+            i += 1
+
+    def query_mongo(self, collection, rows, columns):
+        cursor = collection.find(rows, columns)
+        result_dumps = dumps(cursor)
+        result_loads = loads(result_dumps)
+        result_df = pd.DataFrame.from_records(result_loads)
+        return result_df
+
+    def query_mongo_searchengine(
+        self, collection, keytosearch, searchterms, columns={}
+    ):
+
+        collection.create_index([(keytosearch, "text")])
+
+        cursor = collection.find(
+            {"$text": {"$search": searchterms, "$caseSensitive": False}}, columns
+        )
+        result_dumps = dumps(cursor)
+        result_loads = loads(result_dumps)
+        result_df = pd.DataFrame.from_records(result_loads)
+        return result_df
+
     ### Methods for building the 3NF relational DB tables
     def make_members_df(self, members, ideology, engine):
         """
@@ -328,3 +380,46 @@ class contrans:
             """
         df = pd.read_sql_query(myquery, con=engine)
         return df.head(10), df.tail(10)
+
+    def plot_ideology(self, bioguide_id):
+        server, engine = self.connect_to_postgres(self.postgrespassword)
+        myquery = """
+                    SELECT bioguideid, district, name, partyname, state, nominate_dim1
+                    FROM members
+                    """
+        ideo = pd.read_sql_query(myquery, con=engine)
+        member_ideo = ideo.query(f"bioguideid == {bioguide_id}").reset_index(drop=True)
+        fig = px.histogram(
+            ideo,
+            x="nominate_dim1",
+            nbins=60,
+            title="Distribution of Nominate Dim1",
+            color="partyname",
+        )
+        fig.update_xaxes(title_text="Left-Right Ideology")
+        fig.update_layout(title_x=0.5)
+        fig.update_layout(
+            title_text="How Liberal or Conservative Is this Person?", title_x=0.5
+        )
+        fig.update_layout(legend_title_text="Party")
+        fig.update_xaxes(
+            tickvals=[-0.5, 0, 0.5], ticktext=["Liberal", "Centrist", "Conservative"]
+        )
+        fig.add_vline(x=0, line_width=1, line_color="black")
+        fig.add_vline(
+            x=member_ideo.iloc[0]["nominate_dim1"],
+            line_width=3,
+            line_dash="dash",
+            line_color="red",
+        )
+        fig.update_layout(hovermode="closest")
+        fig.add_annotation(
+            text=f"{member_ideo.iloc[0]['name']} ({member_ideo.iloc[0]['state']}-{member_ideo.iloc[0]['district']})",
+            xref="x",
+            yref="paper",
+            x=member_ideo.iloc[0]["nominate_dim1"],
+            y=1.05,
+            showarrow=False,
+            font=dict(size=12, color="red"),
+        )
+        return fig

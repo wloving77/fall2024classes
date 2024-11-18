@@ -1,0 +1,65 @@
+Project contrans {
+  database_type: 'PostgreSQL'
+  Note: '''
+    # Congress Transparency Dashboard project
+    Data collected from Congress.gov API, OpenSecrets.org, Voteview.com
+  '''
+}
+Table members as M {
+    bioguideid varchar [pk]
+    district varchar
+    name varchar
+    partyname varchar
+    state varchar
+    updatedate varchar
+    url varchar
+    depiction_attribution varchar
+    depiction_imageurl varchar
+    partyletter varchar
+    distidrunfor varchar
+    lastname varchar
+    firstname varchar
+    name2 varchar
+    cid varchar
+    congress   float
+    chamber varchar
+    icpsr   float
+    state_icpsr   float
+    district_code   float
+    state_abbrev varchar
+    party_code   float
+    occupancy varchar
+    last_means varchar
+    bioname varchar
+    bioguide_id varchar
+    born   float
+    died varchar
+    nominate_dim1   float
+    nominate_dim2   float
+    nominate_log_likelihood   float
+    nominate_geo_mean_probability   float
+    nominate_number_of_votes   float
+    nominate_number_of_errors   float
+    conditional varchar
+    nokken_poole_dim1   float
+    nokken_poole_dim2   float
+    note: "Members data combines Congress API bio info with OpenSecrets ID and Voteview Ideology and ICPSR"
+}
+Table terms as T {
+    chamber varchar
+    startyear     int [pk]
+    bioguideid varchar [pk]
+    endyear   float
+    note: "Terms extracted from Congress API bio data"
+}
+Table votes as V {
+    congress     int
+    chamber varchar
+    rollnumber     int [pk]
+    icpsr     int [pk]
+    cast_code     int
+    prob   float
+}
+
+Ref: M.bioguideid < T.bioguideid  
+Ref: M.icpsr < V.icpsr
